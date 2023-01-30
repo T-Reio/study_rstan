@@ -354,6 +354,44 @@ display: none;
 
 </div>
 
+<div id="TOC">
+<ul>
+<li><a href="#chap-1-統計モデリングとstanの概要" id="toc-chap-1-統計モデリングとstanの概要">Chap 1
+統計モデリングとStanの概要</a>
+<ul>
+<li><a href="#統計モデリングとは" id="toc-統計モデリングとは">統計モデリングとは</a></li>
+<li><a href="#統計モデリングの目的" id="toc-統計モデリングの目的">統計モデリングの目的</a></li>
+<li><a href="#確率的プログラミング言語" id="toc-確率的プログラミング言語">確率的プログラミング言語</a></li>
+<li><a href="#なぜstanなのか" id="toc-なぜstanなのか">なぜStanなのか</a></li>
+<li><a href="#なぜrstanなのか" id="toc-なぜrstanなのか">なぜRStanなのか</a></li>
+</ul></li>
+<li><a href="#chap2-ベイズ推定の復習" id="toc-chap2-ベイズ推定の復習">Chap2 ベイズ推定の復習</a>
+<ul>
+<li><a href="#基本用語と記法" id="toc-基本用語と記法">基本用語と記法</a></li>
+<li><a href="#伝統的な統計学頻度論の問題点" id="toc-伝統的な統計学頻度論の問題点">伝統的な統計学(頻度論)の問題点</a></li>
+<li><a href="#尤度と最尤推定" id="toc-尤度と最尤推定">尤度と最尤推定</a></li>
+<li><a href="#ベイズ推定とmcmc" id="toc-ベイズ推定とmcmc">ベイズ推定とMCMC</a></li>
+<li><a href="#ベイズ信頼区間とベイズ予測区間" id="toc-ベイズ信頼区間とベイズ予測区間">ベイズ信頼区間とベイズ予測区間</a></li>
+<li><a href="#最尤推定とベイズ推定との関係" id="toc-最尤推定とベイズ推定との関係">最尤推定とベイズ推定との関係</a></li>
+<li><a href="#事前分布の選択" id="toc-事前分布の選択">事前分布の選択</a></li>
+</ul></li>
+<li><a href="#chap-3" id="toc-chap-3">Chap 3</a>
+<ul>
+<li><a href="#データ解析の前準備" id="toc-データ解析の前準備">データ解析の前準備</a></li>
+<li><a href="#統計モデリングの手順" id="toc-統計モデリングの手順">統計モデリングの手順</a></li>
+<li><a href="#モデルの記述方法" id="toc-モデルの記述方法">モデルの記述方法</a></li>
+<li><a href="#情報量基準を使ったモデル選択" id="toc-情報量基準を使ったモデル選択">情報量基準を使ったモデル選択</a></li>
+</ul></li>
+<li><a href="#chap-4-stanとrstanをはじめよう" id="toc-chap-4-stanとrstanをはじめよう">Chap 4
+StanとRStanをはじめよう</a>
+<ul>
+<li><a href="#stanとrstanの準備" id="toc-stanとrstanの準備">StanとRStanの準備</a></li>
+<li><a href="#stanの基本的な文法" id="toc-stanの基本的な文法">Stanの基本的な文法</a></li>
+<li><a href="#stanのlp__とtarget" id="toc-stanのlp__とtarget">Stanの<code>lp__</code>と<code>target</code></a></li>
+<li><a href="#単回帰" id="toc-単回帰">単回帰</a></li>
+</ul></li>
+</ul>
+</div>
 
 <div id="chap-1-統計モデリングとstanの概要" class="section level2">
 <h2>Chap 1 統計モデリングとStanの概要</h2>
@@ -458,28 +496,200 @@ display: none;
 <div id="基本用語と記法" class="section level3">
 <h3>基本用語と記法</h3>
 <ul>
-<li><p>確率分布</p></li>
-<li><p>確率質量関数</p></li>
-<li><p>確率密度関数</p></li>
-<li><p>同時分布</p></li>
-<li><p>周辺化と周辺分布</p></li>
-<li><p>条件付確率分布</p></li>
-<li><p><span class="math inline">\(y \sim p(y)\)</span></p></li>
-<li><p>正規化</p></li>
-<li><p>偏微分</p></li>
-<li><p>大文字から始まるアルファベット</p></li>
-<li><p>ベクトルと行列</p></li>
-<li><p>添え字と[]</p></li>
+<li><p>確率分布</p>
+<ul>
+<li>確率変数<span class="math inline">\(a\)</span>の確率分布<span class="math inline">\(p(a)\)</span></li>
+</ul></li>
+<li><p>確率質量関数: probability mass function</p>
+<ul>
+<li>離散値を取る確率変数の分布</li>
+</ul></li>
+<li><p>確率密度関数: probability density function</p>
+<ul>
+<li>連続地を取る確率変数の分布</li>
+</ul></li>
+<li><p>同時分布・結合分布: joint distribution</p>
+<ul>
+<li><p>複数個の確率変数が取りうる各の値の組に対して、その起こりやすさを確率で表現したもの</p></li>
+<li><p><span class="math inline">\(k\)</span>個の確率変数<span class="math inline">\(\theta_1, \theta_2, \ldots,
+\theta_k\)</span>の同時分布：<span class="math inline">\(p(\theta_1,
+\theta_2, \ldots, \theta_k)\)</span></p></li>
+</ul></li>
+<li><p>周辺化: marginalization</p>
+<ul>
+<li><p>同時分布から特定の確率変数について、その和を取る(離散)または積分する(連続)ことで、その変数を消去すること</p></li>
+<li><p>2変数<span class="math inline">\(a, b\)</span>の同時分布<span class="math inline">\(p(a, b)に\)</span>おいて、<span class="math inline">\(aに\)</span>ついて和を取ることで周辺分布<span class="math inline">\(p(b)が\)</span>求まる</p>
+<ul>
+<li><p>離散値: <span class="math inline">\(p(b) = \sum_a p(a,
+b)\)</span></p></li>
+<li><p>連続値: <span class="math inline">\(p(b) = \int p(a,
+b)da\)</span></p></li>
+</ul></li>
+</ul></li>
+<li><p>条件付確率分布: conditional distribution</p>
+<ul>
+<li><p>同時分布$p(a, b)に$ついて、ある$b =
+b_0$が与えられたときの確率変数<span class="math inline">\(a\)</span>の分布</p></li>
+<li><p>$p(a | b_0) = $</p></li>
+<li><p>パラメータ<span class="math inline">\(\theta\)</span>について条件づける時も同様</p></li>
+</ul></li>
+<li><p><span class="math inline">\(y \sim p(y)\)</span></p>
+<ul>
+<li>確率変数<span class="math inline">\(yが\)</span>分布<span class="math inline">\(p(y)に\)</span>従う</li>
+</ul></li>
+<li><p>正規化</p>
+<ul>
+<li><p>関数の和・積分が1になるように、その関数に定数を掛けること</p>
+<ul>
+<li>正規化定数・規格化定数</li>
+</ul></li>
+</ul></li>
+<li><p>偏微分</p>
+<ul>
+<li><p>多変数関数<span class="math inline">\(f(\theta_1, \ldots,
+\theta_k)に\)</span>ついて</p></li>
+<li><p><span class="math display">\[
+\lim_{\Delta \theta_1 \to 0}\dfrac{f(\theta_1 + \Delta\theta_1, \ldots,
+\theta_k) - f(\theta_1, \ldots, \theta_k)}{\Delta \theta_1}
+\]</span></p></li>
+</ul></li>
+<li><p>大文字から始まるアルファベット</p>
+<ul>
+<li>観測されたデータを表す</li>
+</ul></li>
+<li><p>ベクトルと行列</p>
+<ul>
+<li>ベクトルは<span class="math inline">\(\overset{\to}{x}\)</span>,
+行列は<span class="math inline">\(\mathbf{x}\)</span>で表現する</li>
+</ul></li>
+<li><p>添え字と[]</p>
+<ul>
+<li>察せ</li>
+</ul></li>
 </ul>
 </div>
 <div id="伝統的な統計学頻度論の問題点" class="section level3">
 <h3>伝統的な統計学(頻度論)の問題点</h3>
+<ul>
+<li><p>伝統的な統計学：パラメータ<span class="math inline">\(\thetaが\)</span>ある一点の真値をもつ定数と考える</p></li>
+<li><p>実用上の問題</p>
+<ul>
+<li><p>検定の解釈が直感的でない</p></li>
+<li><p>信頼区間の解釈が直感的でない</p></li>
+<li><p>複雑なモデルにおいて、信頼区間と予測区間の算出が難しい</p></li>
+</ul></li>
+</ul>
 </div>
 <div id="尤度と最尤推定" class="section level3">
 <h3>尤度と最尤推定</h3>
+<p>モデルのあてはまりの評価</p>
+<p>定式化されたモデル：「<span class="math inline">\(Y[n] (n = 1,
+\ldots, 20)\)</span>は、<span class="math inline">\(\text{Normal}(\mu,
+1)に\)</span>従う」…推定すべきパラメータは<span class="math inline">\(\mu\)</span>である</p>
+<ul>
+<li><p>尤度: likelihood</p>
+<ul>
+<li><p>パラメータ<span class="math inline">\(\mu\)</span>に対する尤度関数：</p></li>
+<li><p><span class="math display">\[
+L(\mu) = \prod_{n = 1}^N \text{Normal}(Y[n] | \mu, 1)
+\]</span></p></li>
+<li><p>パラメータに条件づけたときのデータ<span class="math inline">\(Y\)</span>が観測される確率</p></li>
+</ul></li>
+<li><p>尤度が最も高くなるパラメータを探す推定法を最尤推定(maximum
+likelihood estimation)と呼ぶ</p>
+<ul>
+<li><p>推定値：maximum likelihood estimate</p></li>
+<li><p><strong>パラメータは点推定される</strong></p></li>
+</ul></li>
+<li><p>一般に、尤度は1未満の多数の数の積であるため、非常に小さな値を持つ。そのため、計算の煩雑さを避けるために対数を取る(対数尤度)</p>
+<ul>
+<li>Rの<code>optim</code>関数や<code>{nlme}</code>パッケージに含まれる関数では、適当にパラメータの初期値を与え、その位置から対数尤度が最も大きく増加する方向にパラメータを動かし、収束するまで繰り返すステップで推定を行う</li>
+</ul></li>
+</ul>
+<p><strong>最尤推定が対処しきれない問題</strong></p>
+<ul>
+<li><p>過学習(overfitting)</p>
+<ul>
+<li>(各グループごとの)観測が少数のサンプルに対する過剰な適合が経験に反する推定を正当化し、汎化性能(新しいデータに対する予測能力)を低下させる</li>
+</ul></li>
+<li><p>最尤推定の実際の計算が難しくなる</p>
+<ul>
+<li><p>局所最適化が帯域最適化にならない可能性</p></li>
+<li><p>複数の初期値から推定を行うことである程度解決されるが、一方でパラメータが多数に及ぶ場合、十分な試行回数を稼ぐことが難しくなる</p></li>
+</ul></li>
+</ul>
 </div>
 <div id="ベイズ推定とmcmc" class="section level3">
 <h3>ベイズ推定とMCMC</h3>
+<p>前節の問題を解決する方法の一つとして、</p>
+<ul>
+<li><p>ベイズ推定 Bayesian Inference</p></li>
+<li><p>マルコフ連鎖モンテカルロ法 Markov chain Monte Carlo
+methods</p></li>
+</ul>
+<p>ベイズ推定では、すべてのパラメータを確率変数とみなして、その確率分布を想定する</p>
+<ul>
+<li><p>特定のパラメータがある区間に入る確率を求める：直感的に解釈しやすい結果</p>
+<ul>
+<li>パラメータの点推定ではなく、あるデータ<span class="math inline">\(Yが\)</span>得られたときの分布<span class="math inline">\(p(\theta | Y)\)</span>
+が得られる：複数パラメータの場合は同時分布</li>
+</ul></li>
+</ul>
+<p><strong>事後分布：posterior distribution</strong></p>
+<ul>
+<li><p>データ<span class="math inline">\(Y\)</span>が得られた後の分布<span class="math inline">\(p(\theta | Y)\)</span></p>
+<ul>
+<li>事前分布<span class="math inline">\(p(\theta)\)</span></li>
+</ul></li>
+<li><p>事後確率は、ベイズの定理より</p></li>
+<li><p><span class="math display">\[
+p(\theta | Y) = \dfrac{p(Y | \theta) p(\theta)}{p(Y)} \propto p(Y |
+\theta)p(\theta)
+\]</span></p>
+<ul>
+<li>分母<span class="math inline">\(p(Y)は\)</span>パラメータに依存せず、得られたデータ<span class="math inline">\(Y\)</span>によってのみ決まる：パラメータ<span class="math inline">\(\theta\)</span>のp(Y)は$パラメータに依存せず、得られたデータ<span class="math inline">\(Y\)</span>によってのみ決まる：パラメータ<span class="math inline">\(\theta\)</span>の分布形は分子から作られ、分母はその正規化定数とみなせる</li>
+<li>分母の計算は容易でないため、分子の部分から乱数を発生させて事後分布に代替すれば、様々な統計量や積分計算を行うことができる：MCMC
+<ul>
+<li>MCMCによって得られた乱数サンプルをMCMCサンプルと呼ぶ</li>
+</ul></li>
+<li>MCMCサンプルを生成するアルゴリズム
+<ul>
+<li><p>メトロポリス・ヘイスティングス法 Metropolis-Hastings
+algorithm</p></li>
+<li><p>ギブスサンプリング Gibbs sampling</p></li>
+</ul></li>
+</ul></li>
+</ul>
+<p>MCMCサンプルを用いたアルゴリズムの手順</p>
+<ol style="list-style-type: decimal">
+<li>パラメータの初期値を適当に定めてMCMCサンプルを作成</li>
+<li>MCMCサンプルから得られたパラメータの推定値をもとに、次のステップのMCMCサンプルを乱数によって作成</li>
+<li>ステップからサンプルを得るごとにパラメータの値を更新していく</li>
+</ol>
+<ul>
+<li><p>Glossary</p>
+<ul>
+<li><p>サンプル列：ステップ数に従って得られる値の系列</p></li>
+<li><p>chain：初期値と乱数のシードを一つに定めたときに得られたサンプル列</p></li>
+<li><p>トレースプロット：MCMCサンプルのパラメータの値を取った折れ線グラフ</p></li>
+<li><p>バーンイン burn in</p>
+<ul>
+<li><p>初期値直後のサンプル列：初期値への依存が大きいため、あえてサンプリングせずに捨てる</p></li>
+<li><p>密度分布は、例えば200ステップ経過した後のパラメータのMCMCサンプルから作成する：事後分布</p></li>
+</ul></li>
+<li><p>当然分布が収束しないこともある</p>
+<ul>
+<li><p>典型的にはサンプル列の自己相関が高くなっている</p></li>
+<li><p>数ステップ中の値が次のステップの値に大きな影響を与えているため、実質的に新しいサンプリングが行われていない</p></li>
+<li><p>影響が軽微な場合は、<strong>thinning</strong>
+(ステップすべてをサンプリングせず、数回に1度だけサンプリングを行う)ことで収束可能性が改善されることがある</p></li>
+<li><p>収束していない分布をもとに解析を進めることは基本的に推奨されない</p>
+<ul>
+<li>再現性問題</li>
+</ul></li>
+</ul></li>
+</ul></li>
+</ul>
 </div>
 <div id="ベイズ信頼区間とベイズ予測区間" class="section level3">
 <h3>ベイズ信頼区間とベイズ予測区間</h3>
@@ -524,8 +734,8 @@ p_load(rstan)</code></pre></li>
 <div id="stanの基本的な文法" class="section level3">
 <h3>Stanの基本的な文法</h3>
 <p>以降、chap3.stanも参照してくれ</p>
-<div id="文法の基礎" class="section level4">
-<h4>文法の基礎</h4>
+<div id="ブロック構成" class="section level4">
+<h4>ブロック構成</h4>
 <pre class="stan"><code>data {
   データYの宣言
 }
@@ -538,8 +748,17 @@ model {
   尤度関数p(Y|\theta)の記述
   事前分布p(\theta)の記述
 }</code></pre>
+<ul>
+<li><p>各ブロックの中に情報を記述</p></li>
+<li><p>値が決まっていない確率変数はすべてパラメータとして扱われる</p></li>
+<li><p>サンプリングのシステム</p>
+<ul>
+<li><p>コードの実行→モデル式がC++のコードに変換され、コンパイルされてMCMCサンプリングが実行される</p></li>
+<li><p>ブロックの順序を誤るとエラーが出るので注意</p></li>
+</ul></li>
+</ul>
 </div>
-<div id="文法の基礎-1" class="section level4">
+<div id="文法の基礎" class="section level4">
 <h4>文法の基礎</h4>
 <ul>
 <li><p>標準偏差の定まった：正規分布をデータに当てはめる問題</p></li>
@@ -551,7 +770,106 @@ Y[n] &amp; \sim \text{Normal}(\mu, 1) \text{ where } n = 1, \ldots, N \\
 \mu &amp; \sim \text{Normal}(0, 100)
 \end{align}
 \]</span> - <span class="math inline">\(N\)</span>は観測数に対応</p>
+<ul>
+<li><p>未知のパラメータ<span class="math inline">\(\mu\)</span>をデータから推定する</p>
+<ul>
+<li>無情報事前分布：平均ゼロ、標準偏差100の非常に平らな正規分布</li>
+</ul></li>
+<li><p>Stanコードによる表現</p></li>
+</ul>
+<pre class="stan"><code>data {
+  int N;
+  real Y[N];
+}
+
+parameters {
+  real mu;
+}
+
+model {
+  for (n in 1:N) {
+  Y[n] ~ normal(mu, 1);
+  }
+  mu ~ normal(0, 100)
+}</code></pre>
+<ul>
+<li><p>dataブロック：データの個数Nと観測されたデータYを宣言</p>
+<ul>
+<li><p>int, realなどで変数のクラスを表現</p></li>
+<li><p><code>Y[1], Y[2], …, Y[N]</code>：観測単位</p></li>
+</ul></li>
+<li><p>modelブロック：事前分布の宣言:
+<code>mu ~ normal(0, 100)</code></p>
+<ul>
+<li>forループで繰り返しデータを抽出することを表現</li>
+<li>特に指定がない場合、十分に幅の広い一様分布が使用される</li>
+</ul></li>
+<li><p>parametersブロック：推定するパラメータを宣言</p></li>
+<li><p>その他</p>
+<ul>
+<li><p>コメントアウト：<code>//</code>か<code>/**/</code>で囲む(後者は複数行を挟める)</p></li>
+<li><p><code>#</code>は非推奨だが使えるらしい</p></li>
+<li><p>文法：BUGS言語と一部に違い、知らんからいい</p></li>
+</ul></li>
+</ul>
 </div>
+<div id="コーディング規約" class="section level4">
+<h4>コーディング規約</h4>
+<p>まあ変なことしなきゃいいんだけどね</p>
+<ol style="list-style-type: decimal">
+<li>インテンドちゃんとする</li>
+<li>データの変数は大文字、パラメータを小文字で表現</li>
+<li>ブロック間は1行空けて</li>
+<li>変数名は<code>_</code>でつなぐ(<code>snake_case</code>っていうらしい。対立概念に<code>camelCase</code>とか、まあRと一緒だな)</li>
+<li><code>~=</code>の間はスペース入れろ</li>
+</ol>
+</div>
+</div>
+<div id="stanのlp__とtarget" class="section level3">
+<h3>Stanの<code>lp__</code>と<code>target</code></h3>
+<p>Stanのパラメータ探索</p>
+<ul>
+<li>事後確率<span class="math inline">\(p(\theta | Y) \propto p(Y |
+\theta) p(\theta)p(\theta | Y)\)</span>の高くなるパラメータを探す</li>
+<li>効率を上げるために、実際には対数事後確率を見る <span class="math display">\[
+  \log p(\theta | Y) \propto \log p(Y | \theta)  + \log p(\theta) +
+\text{constant}
+  \]</span></li>
+<li>対数事後確率をパラメータ<span class="math inline">\(\theta\)</span>について偏微分した値によって決める
+<ul>
+<li>このため、各MCMCステップのパラメータ<span class="math inline">\(\theta^*\)</span>におけるt対数事後確率の定数項以外の項：<span class="math inline">\(\log p(Y | \theta^*) + \log
+p(\theta^*)\)</span>を保持しておく<span class="math inline">\(=\)</span><code>lp__</code>：log posterior
+という名前で保持している</li>
+<li>尤度と事前分布の記述によって<code>lp__</code>の関数形が決まる</li>
+</ul></li>
+<li><code>target</code>
+<ul>
+<li><p><code>lp__</code><span class="math inline">\(=\log p(Y |
+\theta^*)+\log p(\theta^*)\)</span></p></li>
+<li><p>サンプリングのプロセスにおいては、事前確率<span class="math inline">\(\log(\theta^*)\)</span>に対して、尤度<span class="math inline">\(\log p(Y|\theta)\)</span>
+を(観測単位ごとに)繰り返し足し続けることになる</p></li>
+<li><p>このプロセスを明示的に表現した記法: 2つの記述は同値になる</p>
+<pre class="stan"><code>model {
+  for (n in 1:N) {
+    Y[n] ~ normal(mu, 1);
+  }
+  mu ~ normal(0, 100)
+}</code></pre>
+<pre class="stan"><code>model {
+  for (n in 1:N) {
+    target += normal_lpdf(Y[n] | mu, 1);
+    /* target += x はtarget = target + x と同値
+    /* N(mu, 1)からY[n]をドローする確率、N回分足し続ける：尤度 */
+  }
+  target += normal_lpdf(Y[n] | mu, 100)
+  /* 事前分布 */
+}</code></pre></li>
+</ul></li>
+<li>高度な分析においては、あえて<code>target</code>を使った書き方が必要になることも</li>
+</ul>
+</div>
+<div id="単回帰" class="section level3">
+<h3>単回帰</h3>
 </div>
 </div>
 
