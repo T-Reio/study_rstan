@@ -5,13 +5,22 @@ date: ""
 output: 
   html_document:
     toc: TRUE
+    toc_float: TRUE
+    toc_depth: 4
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(pacman)
-library(tidyverse)
+p_load(tidyverse)
+p_load(rstan)
+p_load(ggmcmc)
+p_load(rstudioapi)
 ```
+
+## Support Page
+
+-   [GitHub](https://github.com/MatsuuraKentaro/RStanBook)
 
 ## Chap 1 統計モデリングとStanの概要
 
@@ -257,7 +266,7 @@ library(tidyverse)
     p(\theta | Y) = \dfrac{p(Y | \theta) p(\theta)}{p(Y)} \propto p(Y | \theta)p(\theta)
     $$
 
-    -   分母$p(Y)は$パラメータに依存せず、得られたデータ$Y$によってのみ決まる：パラメータ$\theta$のp(Y)は\$パラメータに依存せず、得られたデータ$Y$によってのみ決まる：パラメータ$\theta$の分布形は分子から作られ、分母はその正規化定数とみなせる
+    -   分母$p(Y)は$パラメータに依存せず、得られたデータ$Y$によってのみ決まる：パラメータ$\theta$のp(Y)はパラメータに依存せず、得られたデータ$Y$によってのみ決まる：パラメータ$\theta$の分布形は分子から作られ、分母はその正規化定数とみなせる
     -   分母の計算は容易でないため、分子の部分から乱数を発生させて事後分布に代替すれば、様々な統計量や積分計算を行うことができる：MCMC
         -   MCMCによって得られた乱数サンプルをMCMCサンプルと呼ぶ
     -   MCMCサンプルを生成するアルゴリズム
@@ -299,19 +308,251 @@ MCMCサンプルを用いたアルゴリズムの手順
 
 ### ベイズ信頼区間とベイズ予測区間
 
+**ベイズ信頼区間**: Bayesian confidence interval
+
+-   事後分布の両端から$\alpha / 2\%$の面積を切り取って残った中央部に対応する区間を$(1 - \alpha)\%$ベイズ信頼区間と呼ぶ
+
+-   MCMCを使って事後分布を推定した場合は、MCMCの分位点がそれに対応
+
+ex.) 観測できる流星群の数
+
+-   ポアソン分布$\text{Poisson}(y | \theta) = \theta^y e^{-\theta} / y!$ に従う
+
+    -   次の10分間に流れ星を$i$ 個観測する確率は？
+
+    -   個々のパラメータではなく、新しいデータの**予測分布 predicitve distribution**を求める必要
+
+1.  最尤推定の予測分布
+    -   データ$Y$ から得られたパラメータ$\hat{\theta}$ をモデルに代入する
+
+    -   $\hat{\theta} = 1.4$ ならば、$\text{Poisson}(y | 1.4) = \theta^y e^{-1.4} / y!$ . これに$y = 0, 1, \ldots, Kを$代入して分布を求める
+2.  ベイズ推定の予測分布
+    -   得られたパラメータの事後分布$p(\theta | Y)$ で加重したデータの発生確率(確率モデル) $p(y | \theta)$を足し合わせたもの
+
+    -   $$
+        p_{\text{pred}}(y | Y) = \int p(y | \theta) p(\theta | Y) d \theta
+        $$
+
+    -   MCMCを利用する場合、パラメータの事後分布$p(\theta | Y)$ はMCMCサンプルとして求められる。$p(y | \theta)$ は既知なので(モデルを仮定しているので)、$\theta$ の積分をMCMCサンプルの和で置き換えて実行すると予測分布が求まる
+
+    -   $$
+        p_{\text{pred}}(y | Y) = \sum_{i} p(y | \theta_i) \times p(\theta_i | Y)
+        $$
+
+        -   ってことだよね？サンプリングは離散の値でしか出ないから
+
+        -   $i$はMCMCサンプルから観測されたそれぞれの$\theta$に対応
+
+**ベイズ予測区間**: Bayesian prediction interval
+
+-   $p(\theta | Y)$ からのMCMCサンプルから値を一つ選択
+
+-   選択したパラメータを$\theta^{\dagger}$ として、確率モデル$p(y | \theta^{\dagger})$ に従う乱数$y^{\dagger}$ を生成する
+
+-   集積された$y^{\dagger}$は、予測分布$p_{\text{pred}}(y | Y)$からのMCMCサンプルとみなせる：予測区間の導出
+
+**最尤推定によるデータへの過剰適合**
+
+-   モデルが複雑/データが不十分な場合、最尤推定で得られた予測分布はデータに過剰適合する
+
+-   複雑なモデルの多くは尤度関数が(多変量)正規分布で近似することが難しく、予測分布が真の分布に一致しない
+
+**事前分布**
+
+-   $$
+    p(y | .) = \int p(y | \theta) p(\theta_i) d \theta
+    $$
+
+    -   観測されたデータの情報を使わない
+
+    -   事前分布から予測分布：事前予測分布・ベイズ事前予測区間を算出することもできる
+
+ベイズ信頼区間の利用
+
+-   パラメータの数が多いときに、事後分布を可視化して特徴を理解することが困難であるため、情報を落としてやる必要がある
+
+-   パラメータが少数なら分布をそのまま見てもよい
+
 ### 最尤推定とベイズ推定との関係
+
+-   **事後確率最大推定値**: maximum a posteriori estimate **MAP**
+
+    -   事後分布$p(\theta | Y)$ を最大にする点$\theta^*$
+
+-   事前分布$p(\theta)$ に十分に幅の広い一様分布や、裾の厚い正規分布を使うと、$p(\theta)$ は広い範囲で定数とみなせるので、
+
+-   $$
+    \theta^* = \arg \max_{\theta} p(\theta | Y) = \arg \max_{\theta} [p(Y | \theta) p(\theta)] = \arg \max_{\theta} p(Y | \theta)
+    $$
+
+-   が成り立つ。4項めは尤度に等しいので、得られた事後確率最大推定値は最尤推定量に一致する：伝統的な統計学とも整合性を持つ
 
 ### 事前分布の選択
 
-## Chap 3
+ベイズ統計$\times$ MCMCの問題点
+
+-   分布収束しないケースへの対処
+
+-   事前分布の選択：複数の価値基準
+
+    -   **無情報事前分布**：主観的な分布選択による分析者間の結果の違い
+
+    -   **弱情報事前分布 weakly informative prior**：人間の身長を推定する際に、3メートルに正の確率を当てる必要はなかろう
+
+    -   **共役事前分布** **conjugate prior**：計算上の負荷を軽減するために用いられる。詳細は10章参照
+
+#### cf.
+
+-   最尤推定の問題点について
+
+-   ベイズ推定について
+
+-   ベイズ統計の歴史について
+
+-   MCMCアルゴリズムについて
+
+## Chap 3 統計モデリングを始める前に
 
 ### データ解析の前準備
 
+データ解析において、一般に必要となる前準備
+
+-   データ取得以前
+
+    -   背景知識の収集
+
+        -   該当分野で認められる仮定や利用される解析・可視化手法
+
+    -   問題設定
+
+        -   リサーチクエスチョン
+
+        -   主張したいこと
+
+        -   分析のストーリー、それを伝える可視化
+
+    -   解析計画
+
+        -   手法選択やその結果を受けて行う解析のルートづくり
+
+-   データ取得後
+
+    -   分布の確認
+
+        -   ヒストグラム
+
+        -   2変数間の関係：散布図やクロス集計
+
+前処理・描画ツール
+
+-   描画ツール：Spotfire, R
+
+-   集計・加工：R, SQL, Python, Ruby, ...
+
+-   クリーニング：OpenRefine
+
 ### 統計モデリングの手順
+
+1.  解析の目的
+2.  データの分布の確認
+3.  背後にあるメカニズムの想像
+4.  モデル式の記述
+5.  Rによるシミュレーション
+6.  Stanによる実装
+7.  推定結果の解釈
+8.  図によるモデルのチェック
+
+-   モデルはシンプルなものから始める
+
+    -   王道のモデルをコピー
+
+    -   説明変数の数を絞る
+
+    -   確率変数は各独立と仮定する
+
+    -   グループ差や個人差について考慮しない
+
+-   計算負荷を落として分析の概形をつかむ
+
+    -   ランダムな抽出によるサンプルサイズの制限
+
+    -   特定カテゴリーのデータを抽出して分析する
+
+-   その他、重要なステップ
+
+    -   再現性のチェック
+
+        -   頑健性：観測の間引き、モデルや事前分布の微細な変更が結果に大きな影響を及ぼさないか
+
+        -   外敵妥当性
+
+        -   使用するソフトやアルゴリズムの変更が影響しないか
+
+        -   初期値・乱数の変更
+
+    -   データ解析のサイクル
+
+        -   予測性能の改善・原因究明
+
+        -   新しいデータの取得
+
+        -   データの充実による複雑なモデルの実装可能性
+
+### 背景知識の役割
+
+**逆問題** inverse problem
+
+-   一部のインプットとアウトプットが分かっていて、その間をつなぐメカニズムが不明な場合
+
+    -   答えを何通りも考えることができ、一意に定めることが不可能
+
+        -   **不良設定問題** ill-posed problem
+
+-   どの答えがもっともらしいかについては、背景知識をもとにした補完が必要である
+
+**モデルの詳細さ**
+
+-   モデリングは問題設定によって変化する
+
+-   たとえ取得されたデータが同じであったとしても
 
 ### モデルの記述方法
 
+**モデル式**: 確率変数やデータの関係を記述した数式の集まり
+
+**グラフィカルモデル** graphical model：教科書参照して
+
+**構造方程式モデリング** structual equation medeling
+
+-   グラフによる表現方法には数式が与えられないため、モデルに含まれる変数の数があまりに多くない限りは数式を用いた記述方法を用いるのが無難
+
 ### 情報量基準を使ったモデル選択
+
+**情報量規準** Information Criterion
+
+-   予測の精度を表す規準：AIC WAIC
+
+-   真のモデルへの近さを表す規準：BIC WBIC
+
+WBICはWAICよりもシンプルなモデルを好む傾向にある
+
+この辺は何かしらのテキストを読んだ方がよさそう
+
+-   情報量規準における注意点
+
+    -   過学習：手元のデータへの過剰適合
+
+        -   クロスバリデーションでも過学習を回避することは難しい
+
+    -   モデルの探索と情報量規準の増減は別ベクトル：安易なモデル選択を招く恐れ
+
+### cf.
+
+-   モデリング
+
+-   AIC
+
+-   StanによるWAIC、WBICの算出
 
 ## Chap 4 StanとRStanをはじめよう
 
@@ -396,6 +637,7 @@ model {
   }
   mu ~ normal(0, 100)
 }
+
 ```
 
 -   dataブロック：データの個数Nと観測されたデータYを宣言
@@ -412,6 +654,8 @@ model {
 -   parametersブロック：推定するパラメータを宣言
 
 -   その他
+
+    -   **最終行は必ず空の改行で終わる(コメントアウトもなし)**
 
     -   コメントアウト：`//`か`/**/`で囲む(後者は複数行を挟める)
 
@@ -470,3 +714,384 @@ Stanのパラメータ探索
 -   高度な分析においては、あえて`target`を使った書き方が必要になることも
 
 ### 単回帰
+
+StanとRStanの実用例
+
+-   社員の年齢から年収を予測
+
+    -   基本年収$y_{\text{base}}$ と観測不可能な影響$\varepsilon$ によって年収が決定される
+
+    -   $\varepsilon$ は平均0の正規分布に従う
+
+#### 解析の目的
+
+-   B社に中途採用された50歳の社員の年収は？
+
+-   年齢から年収を予測する問題
+
+-   説明変数とか被説明変数とかはさすがに大丈夫でしょう
+
+#### データの分布の確認
+
+-   可視化されたデータから、線形モデルに無理がないか確認すべし
+
+    ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+    d <- read_csv("../input/data-salary.txt")
+    plot(d$X, d$Y)
+    ```
+
+    -   線形関係でいけそう
+
+        -   そうなるように作ったデータだからね
+
+#### モデル式の記述
+
+**モデル式4-2**
+
+$$
+\begin{align}
+Y[n] &= y_{\text{base}}[n] + \varepsilon[n] \\
+y_{\text{base}} &= a + b X[n] \\
+\varepsilon[n] &\sim \text{Normal}(0, \sigma)
+\end{align}
+$$
+
+-   $n = 1, 2, \ldots, N$
+
+-   $\varepsilon[n]$ は互いに独立、$\sigma$ がノイズの大きさに対応
+
+ベイズ統計のモデリングに特有の仮定
+
+-   $\varepsilon$ だけでなく、\$a, b, \sigma\$ もそれぞれ確率変数である：$\theta$
+-   それぞれに対して無情報事前分布を仮定：十分に広い一様分布
+    -   広い範囲で定数なので、事後確率の偏微分には干渉しない：モデルの中であえて宣言しなくてOK
+-   以下、モデル式4-2の書き換え
+
+**モデル式4-3**
+
+$$
+\begin{align}
+Y[n] &= a + b X[n] + \varepsilon[n] \\
+\varepsilon[n] &\sim \text{Normal}(0, \sigma)
+\end{align}
+$$
+
+**モデル式4-4**
+
+$$
+\begin{align}
+y_{\text{base}}[n] &= a + b X[n] + \varepsilon[n] \\
+Y[n] &\sim \text{Normal}(y_{\text{base}}[n], \sigma)
+\end{align}
+$$
+
+**モデル式4-5**
+
+$$
+\begin{align}
+Y[n] &\sim \text{Normal}(a + bX[n], \sigma)
+\end{align}
+$$
+
+-   モデルの記述方法によって速度が異なることがあるらしい
+
+    -   $\varepsilon$を消去した方が速い
+
+    -   収束しにくくなる場合もある
+
+    -   一般的にはどのモデル式も等価
+
+#### Rの`lm`関数で推定
+
+シンプルなモデルにおいては、最尤推定とStanによるベイズ推定の予測分布にはほとんど差がない
+
+-   `lm`関数による直線のあてはめ
+
+    ```{r}
+    #d <- read_csv("../input/data-salary.txt") #もうやってるので省略
+    res_lm <- d %>%
+      lm(Y ~ X, data = .)
+    res_lm
+    ```
+
+-   予測区間と信頼区間の導出
+
+    ```{r}
+    X_new <- data.frame(X = 23:60)
+    conf_95 <- predict(res_lm, X_new, interval = 'confidence', level = .95)
+    pred_95 <- predict(res_lm, X_new, interval = 'prediction', level = .95)
+    ```
+
+    ```{r, echo=FALSE}
+    name <- list("conf_95", "pred_95")
+    dfs <- list(conf_95, pred_95)
+    df <- map2_df(
+      .x = dfs,
+      .y = name,
+      .f = ~ .x %>%
+        as_tibble() %>%
+        mutate(
+          age = 23:60,
+          interval = .y,
+        )
+    )
+    ggplot(df) +
+      aes(x = age, y = fit, ymin = lwr, ymax = upr) +
+      geom_point() +
+      geom_ribbon(alpha = .5, fill = "#1e90ff", linetype = 2) +
+      theme_bw() +
+      facet_wrap(~ interval)
+    ```
+
+    めんどいしこんなもんでいいや
+
+#### Stanで実装
+
+stanコードの作成
+
+```{stan, output.var="test", eval=FALSE}
+data {
+  int N;
+  real X[N];
+  real Y[N];
+}
+
+parameters {
+  real a;
+  real b;
+  real<lower=0> sigma;
+}
+
+model {
+  for (n in 1:N) {
+  Y[n] ~ normal(a + b * X[n], sigma);
+  }
+}
+
+```
+
+-   実行はとりあえずスクリプトからやってみた方がいいかも
+
+-   割とシンプルな計算でも時間食いそうなので：そんなことないのかもしれない
+
+-   rstanのパッケージバージョンを下げないと失敗します。インストールの方法は[ここ](https://developer.mamezou-tech.com/blogs/2022/06/30/install-rstan-on-r421/)を参照して下さい
+
+サンプルデータの作成とstanファイルの実行
+
+```{r, eval=FALSE}
+#d <- read_csv("../input/data-salary.txt")
+# もうやってるので省略
+
+data <- list(
+  N = nrow(d),
+  X = d$X,
+  Y = d$Y
+)
+
+#fit <- stan(file = "../stan/model4-5.stan", data = data, seed = 1234)
+#fit <- stan(file = model4_4_5, data = data, seed = 1234)
+fit <- sampling(test, data)
+
+#save.image(file = "../output/result-model4-5.RData")
+# 実行しなくてOK、推定結果の保存
+```
+
+```{r}
+# RMarkdown上で何度も読むのは面倒なので、保存しているワークスペースを呼び出し
+load(file = "../output/result-model4-5.RData")
+```
+
+**結果の確認**
+
+```{r, eval=TRUE}
+fit
+```
+
+-   MCMCのモデルファイルの位置、chain数 (異なる初期値をつかって計算)、iteration (乱数を発生させてデータをドローするプロセス)のステップ数、warmupのステップ数 (使わずに捨てるステップ)、thinningのステップ数 (間引くステップ数)がそれぞれ表示される
+
+    -   chainのデフォルトは4
+
+    -   warmupはデフォルトでiterationの半分に指定されている
+
+    -   得られたMCMCサンプルは全部で`chains * (iter - warmup) / thin`となる
+
+-   パラメータ群
+
+    -   `lp__`: 対数尤度、これも収束する必要がある
+
+-   `mean` : MCMCサンプルの平均値、**事後平均**
+
+-   `se_mean`: 標準誤差、MCMCサンプルの分散を`n_eff` で割った値
+
+    -   `n_eff` : Stanが自己相関などから判断した実効的なMCMCサンプルの数
+
+    -   少なくとも100欲しい
+
+    -   パラメータの収束しやすさを評価する値にもなる
+
+-   `sd`: MCMCサンプルの標準偏差
+
+-   分位点
+
+-   `R_hat`: MCMCが収束したかを評価する指標、複数のchain間におけるMCMCサンプルの分散を比較して算出される
+
+    -   このテキストではすべてのパラメータで`R_hat`が1.1未満となることを収束したと定義する
+
+    -   収束するまでモデルの試行錯誤が必要である
+    
+- その他、`stanfit`オブジェクトから情報を取り出す関数
+
+  - `get_stanmodel`: モデルファイルの中身
+  
+  - `get_elapsed_time`: サンプリングの計算時間
+  
+  - `get_inits`: 各chainにおけるパラメータの初期値
+  
+  - `get_seeds`: 各chainにおける乱数のシード
+
+#### 収束診断をファイルへ出力する
+
+MCMCが収束したと判断する根拠を保存し、報告する
+
+-   パラメータの要約
+
+-   トレースプロット
+
+`ggmcmc`パッケージを利用：RStanでも描画可能だが、多くのパラメータを扱う場合に面倒なことが起こりやすい
+
+```{r}
+#p_load(ggmcmc)
+
+frame_saved <- as_tibble(summary(fit)$summary) %>%
+  mutate(variable = row.names(summary(fit)$summary)) %>%
+  relocate(variable, before = 1) #tibble形式で結果をcsvに保存
+
+frame_saved
+
+#write_excel_csv(frame_saved, "output/fit_summary.csv")
+
+#ggmcmc(
+#  ggs(fit, inc_warmup = TRUE, stan_include_auxiliar = TRUE),
+#  file = "output/fit_tracplot.pdf", plot = "traceplot"
+#)
+
+## PDFでの出力も可能
+
+#出力
+```
+
+-   trace plotから視覚的な収束判断を行う
+
+-   `ggmcmc`パッケージについては別途勉強して
+
+    -   `ggs_traceplot`, `ggs_density`
+
+    -   パラメータ数が増えるとメモリに負荷がかかるので
+
+#### MCMCの設定変更
+
+```{r, eval=FALSE}
+library(pacman)
+p_load(rstan)
+p_load(tidyverse)
+
+d <- read_csv("input/data-salary.txt")
+
+data <- list(N = nrow(d), X = d$X, Y = d$Y)
+
+# Stanファイルのコンパイルのみを行う
+stanmodel <- stan_model(file = "stan/model4-5.stan")
+
+# サンプリングのみを行う
+fit <- sampling(
+  stanmodel,
+  data = data,
+  pars = c("b", "sigma"),
+  init = function() {
+    list(
+      a = runif(1, -10, 10), # 一様分布だっけ
+      b = runif(1, 0, 10),
+      sigma = 10
+    )
+  },
+  seed = 123,
+  chains = 3,
+  iter = 1000,
+  warmup = 200, 
+  thin = 2
+)
+```
+
+-   `stan`関数の実行をそれぞれの手順に分ける関数
+
+    -   `stan_model`, `sampling`
+
+-   モデルのコンパイルに時間がかかるので、オプションを変えながら繰り返しサンプリングを行いたい場合は両者を切り離した方が話が早い
+
+-   コンパイルしたモデルだけ.RDataファイルに保存しておいて、使うときに呼び出すことも可能
+
+オプションの変更に係るスクリプトの記述方法
+
+-   MCMCサンプルを保存する変数の設定：`pars`引数
+
+    -   一部の変数の推定結果のみに関心があるときに、結果を保存せず捨てることができる
+
+        -   変数の収束診断が必要な場合は保存すべし
+
+-   初期値の設定：`init`引数
+
+    -   一部の変数だけ指定することも可能
+
+    -   指定しない場合は $[-2, 2]$ の一様分布からドローした値が初期値として利用される
+    - 局所最適がglobal optimalに対応しない場合、初期値をいじることで真値に近づくことが期待できる
+    
+- シードの設定：`seed`
+
+  - ええやろ
+  
+- chains, iterations, warmup, thin
+
+  - `chains`: 最低3、開発チームの推奨は4
+  
+  - `iter`: モデルの探索中は500-1000、 最終的なモデルが決まったら大きくする。1000-5000ほど
+    
+    - 事後平均の推定に求める精度とも相談：1桁細かく推定するために、追加で100倍のMCMCサンプルが必要となる (中心極限定理)
+  
+  - `warmup`: トレースプロットから視覚的に決める、一般的には100-500
+  
+  - `thin`: 通常1。Stanは他のソフトに比べて初期値への依存度が低いため、サンプル列の自己相関を抑えられる
+    
+    - 一時的に急激に値が変化するトレースプロットに対しては、`thin = 5`程度に設定して間引く
+    
+    - あまりに自己相関が高い場合は、モデルの再構築を検討する
+    
+#### 並列計算の実行方法
+
+chainごとにサンプリングを並行して計算時間を短縮できる：各独立なので
+
+- サンプリングの進捗やエラーの確認ができなくなり、デバッグがしづらくなるので、まずは並列化せずに回ることを確認してから行うのがよい
+
+並列計算を指定するオプション
+
+```{r, eval=FALSE}
+rstan_options(auto_write = TRUE)
+options(mc.cores = parallel::detectCores())
+```
+
+- `rstan_options(auto_write = TRUE)`: モデルのコンパイルを省略するため、ハードディスクにモデルファイルを保存する
+- `options(mc.cores = parallel::detectCores())`: 並列計算の指定、ここではマシンのコア数をすべて使用して計算を行う
+
+#### ベイズ信頼区間とベイズ予測区間の算出
+
+`rstan::extract`: ベイズ信頼区間・ベイズ予測区間を計算するための値を推定結果から取り出す
+
+- `tidyr`パッケージなどとコンフリクトするので、パッケージを明示しておく方が無難
+
+```{r}
+ms <- rstan::extract(fit)
+```
+
+- MCMCサンプリングからwarmingを除外した上で、残りをランダムに並べた値が出力される
+  - シードの固定とも別の乱数がはたらいているらしい
+  - 並び替えをしない、ウォームアップを含めるなどもオプションで指定可能
+
